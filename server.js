@@ -377,21 +377,50 @@ app.post('/api/gophish/sync', async (req, res) => {
                 const rawCampaign = await gp.getCampaign(gpCampaignId);
                 const transformed = GoPhishClient.transformCampaign(rawCampaign);
 
-                // Create campaign in our DB
-                const insertResult = db.prepare(
-                    'INSERT INTO campaigns (client_id, name, total_targets, total_events, stats_sent, stats_opened, stats_clicked, stats_submitted, gophish_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-                ).run(
-                    clientId,
-                    transformed.displayName,
-                    transformed.stats.total_targets,
-                    transformed.totalEvents,
-                    transformed.stats.stats_sent,
-                    transformed.stats.stats_opened,
-                    transformed.stats.stats_clicked,
-                    transformed.stats.stats_submitted,
-                    gpCampaignId
-                );
-                const localCampaignId = insertResult.lastInsertRowid;
+                // Check if this campaign was already synced
+                const existing = db.prepare(
+                    'SELECT id FROM campaigns WHERE client_id = ? AND gophish_id = ?'
+                ).get(clientId, gpCampaignId);
+
+                let localCampaignId;
+
+                if (existing) {
+                    // Update existing campaign stats
+                    db.prepare(
+                        'UPDATE campaigns SET total_targets=?, total_events=?, stats_sent=?, stats_opened=?, stats_clicked=?, stats_submitted=? WHERE id=?'
+                    ).run(
+                        transformed.stats.total_targets,
+                        transformed.totalEvents,
+                        transformed.stats.stats_sent,
+                        transformed.stats.stats_opened,
+                        transformed.stats.stats_clicked,
+                        transformed.stats.stats_submitted,
+                        existing.id
+                    );
+                    localCampaignId = existing.id;
+
+                    // Clear old summary/events before re-importing
+                    db.prepare('DELETE FROM summary WHERE campaign_id = ?').run(localCampaignId);
+                    db.prepare('DELETE FROM events WHERE campaign_id = ?').run(localCampaignId);
+                    console.log(`[GoPhish Sync] Updated existing campaign ${gpCampaignId} (local ID: ${localCampaignId})`);
+                } else {
+                    // Create new campaign
+                    const insertResult = db.prepare(
+                        'INSERT INTO campaigns (client_id, name, total_targets, total_events, stats_sent, stats_opened, stats_clicked, stats_submitted, gophish_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                    ).run(
+                        clientId,
+                        transformed.displayName,
+                        transformed.stats.total_targets,
+                        transformed.totalEvents,
+                        transformed.stats.stats_sent,
+                        transformed.stats.stats_opened,
+                        transformed.stats.stats_clicked,
+                        transformed.stats.stats_submitted,
+                        gpCampaignId
+                    );
+                    localCampaignId = insertResult.lastInsertRowid;
+                    console.log(`[GoPhish Sync] Created new campaign ${gpCampaignId} (local ID: ${localCampaignId})`);
+                }
 
                 // Insert summary rows
                 const insertSummary = db.prepare(
