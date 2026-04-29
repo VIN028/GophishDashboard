@@ -75,7 +75,7 @@ app.get('/api/config', (req, res) => {
 
 function parseCookie(cookieHeader, name) {
     const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
-    return match ? match[1] : null;
+    return match ? decodeURIComponent(match[1]) : null;
 }
 
 // Auth middleware — protect everything except login page & auth API
