@@ -528,12 +528,55 @@ function switchTab(tab) {
 }
 
 // ============================================================
-// Timeline (Per-User Expandable)
+// Timeline (Per-User Expandable) with Filter & Pagination
 // ============================================================
 let timelineDebounce = null;
+let tlAllUsers = [];        // full dataset from API
+let tlFilteredUsers = [];   // after status filter
+let tlCurrentFilter = 'all';
+let tlPageSize = 25;
+let tlCurrentPage = 1;
+
 function debounceLoadTimeline() {
     clearTimeout(timelineDebounce);
     timelineDebounce = setTimeout(loadTimeline, 300);
+}
+
+function setTimelineFilter(status) {
+    tlCurrentFilter = status;
+    tlCurrentPage = 1;
+    document.querySelectorAll('.tl-filter-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.tl-filter-btn[data-status="${status}"]`)?.classList.add('active');
+    applyTimelineFilter();
+    renderTimelinePage();
+}
+
+function setTimelinePageSize() {
+    tlPageSize = parseInt(document.getElementById('tl-page-size').value);
+    tlCurrentPage = 1;
+    renderTimelinePage();
+}
+
+function goTimelinePage(page) {
+    tlCurrentPage = page;
+    renderTimelinePage();
+    // Scroll table to top
+    document.querySelector('.table-wrapper-scroll')?.scrollTo(0, 0);
+}
+
+function applyTimelineFilter() {
+    if (tlCurrentFilter === 'all') {
+        tlFilteredUsers = tlAllUsers;
+    } else {
+        const statusMap = {
+            'Email Sent': u => true, // all users were sent
+            'Email Opened': u => ['Email Opened','Clicked Link','Submitted Data'].includes(u.status),
+            'Clicked Link': u => ['Clicked Link','Submitted Data'].includes(u.status),
+            'Submitted Data': u => u.status === 'Submitted Data',
+        };
+        const filterFn = statusMap[tlCurrentFilter] || (() => true);
+        tlFilteredUsers = tlAllUsers.filter(filterFn);
+    }
 }
 
 async function loadTimeline() {
@@ -551,14 +594,15 @@ async function loadTimeline() {
             return;
         }
 
-        // Compute stats from user statuses
-        const total = data.users.length;
-        const sent = data.users.filter(u => u.status).length;
-        const opened = data.users.filter(u => ['Email Opened','Clicked Link','Submitted Data'].includes(u.status)).length;
-        const clicked = data.users.filter(u => ['Clicked Link','Submitted Data'].includes(u.status)).length;
-        const submitted = data.users.filter(u => u.status === 'Submitted Data').length;
+        // Store full dataset
+        tlAllUsers = data.users;
 
-        // Render stats
+        // Compute & render stats
+        const sent = tlAllUsers.filter(u => u.status).length;
+        const opened = tlAllUsers.filter(u => ['Email Opened','Clicked Link','Submitted Data'].includes(u.status)).length;
+        const clicked = tlAllUsers.filter(u => ['Clicked Link','Submitted Data'].includes(u.status)).length;
+        const submitted = tlAllUsers.filter(u => u.status === 'Submitted Data').length;
+
         document.getElementById('gp-timeline-stats').innerHTML = `
             <div class="gp-stat gp-stat-sent"><div class="gp-stat-val">${sent}</div><div class="gp-stat-label">Sent</div></div>
             <div class="gp-stat gp-stat-opened"><div class="gp-stat-val">${opened}</div><div class="gp-stat-label">Opened</div></div>
@@ -567,7 +611,27 @@ async function loadTimeline() {
         `;
 
         countEl.textContent = `${data.users.length} of ${data.total} users (live)`;
-        tbody.innerHTML = data.users.map((u, i) => {
+
+        // Apply filter and render
+        tlCurrentPage = 1;
+        applyTimelineFilter();
+        renderTimelinePage();
+    } catch (err) { toast('Failed to load timeline: ' + err.message, 'error'); }
+}
+
+function renderTimelinePage() {
+    const tbody = document.getElementById('timeline-tbody');
+    const totalFiltered = tlFilteredUsers.length;
+    const totalPages = Math.max(1, Math.ceil(totalFiltered / tlPageSize));
+    if (tlCurrentPage > totalPages) tlCurrentPage = totalPages;
+
+    const start = (tlCurrentPage - 1) * tlPageSize;
+    const pageUsers = tlFilteredUsers.slice(start, start + tlPageSize);
+
+    tbody.innerHTML = pageUsers.length === 0
+        ? `<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted)">No users match this filter</td></tr>`
+        : pageUsers.map((u, idx) => {
+            const i = start + idx; // global index for toggle
             const statusClass = u.status.replace(/\s+/g, '-').toLowerCase();
             return `<tr class="tl-user-row" onclick="toggleTimelineRow(${i})">
                 <td><span class="tl-toggle" id="tl-icon-${i}">▶</span></td>
@@ -588,7 +652,6 @@ async function loadTimeline() {
                                     <span>OS: <strong>${esc(e.os)}</strong></span>
                                     <span>Browser: <strong>${esc(e.browser)}</strong></span>
                                 </div>`;
-                            // Show submitted fields directly under SUBMITTED DATA event
                             const fieldsHtml = (e.submittedFields && Object.keys(e.submittedFields).length > 0) ? `
                                 <div class="tl-submitted">
                                     <table class="tl-fields-table">
@@ -614,7 +677,28 @@ async function loadTimeline() {
                 </td>
             </tr>`;
         }).join('');
-    } catch (err) { toast('Failed to load timeline: ' + err.message, 'error'); }
+
+    // Render pagination
+    const pagEl = document.getElementById('tl-pagination');
+    if (totalPages <= 1) { pagEl.innerHTML = ''; return; }
+
+    let html = `<button class="tl-page-btn" onclick="goTimelinePage(${tlCurrentPage - 1})" ${tlCurrentPage === 1 ? 'disabled' : ''}>‹ Prev</button>`;
+    html += `<span class="tl-page-info">${start + 1}–${Math.min(start + tlPageSize, totalFiltered)} of ${totalFiltered}</span>`;
+
+    // Show limited page buttons
+    const maxBtns = 5;
+    let startPage = Math.max(1, tlCurrentPage - Math.floor(maxBtns / 2));
+    let endPage = Math.min(totalPages, startPage + maxBtns - 1);
+    if (endPage - startPage < maxBtns - 1) startPage = Math.max(1, endPage - maxBtns + 1);
+
+    if (startPage > 1) html += `<button class="tl-page-btn" onclick="goTimelinePage(1)">1</button><span class="tl-page-info">…</span>`;
+    for (let p = startPage; p <= endPage; p++) {
+        html += `<button class="tl-page-btn ${p === tlCurrentPage ? 'active' : ''}" onclick="goTimelinePage(${p})">${p}</button>`;
+    }
+    if (endPage < totalPages) html += `<span class="tl-page-info">…</span><button class="tl-page-btn" onclick="goTimelinePage(${totalPages})">${totalPages}</button>`;
+
+    html += `<button class="tl-page-btn" onclick="goTimelinePage(${tlCurrentPage + 1})" ${tlCurrentPage === totalPages ? 'disabled' : ''}">Next ›</button>`;
+    pagEl.innerHTML = html;
 }
 
 function toggleTimelineRow(idx) {

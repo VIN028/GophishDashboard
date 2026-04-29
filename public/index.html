@@ -285,13 +285,30 @@
                         <div class="gp-timeline-stats" id="gp-timeline-stats"></div>
                         <div class="table-toolbar">
                             <div class="search-box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="timeline-search" class="input input-sm" placeholder="Search by name or email..." oninput="debounceLoadTimeline()"></div>
+                            <div class="tl-filters" id="tl-filters">
+                                <button class="tl-filter-btn active" data-status="all" onclick="setTimelineFilter('all')">All</button>
+                                <button class="tl-filter-btn" data-status="Email Sent" onclick="setTimelineFilter('Email Sent')">Sent</button>
+                                <button class="tl-filter-btn" data-status="Email Opened" onclick="setTimelineFilter('Email Opened')">Opened</button>
+                                <button class="tl-filter-btn" data-status="Clicked Link" onclick="setTimelineFilter('Clicked Link')">Clicked</button>
+                                <button class="tl-filter-btn" data-status="Submitted Data" onclick="setTimelineFilter('Submitted Data')">Submitted</button>
+                            </div>
+                            <div class="tl-pagesize">
+                                <label>Show</label>
+                                <select id="tl-page-size" onchange="setTimelinePageSize()">
+                                    <option value="10">10</option>
+                                    <option value="25" selected>25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="table-wrapper">
+                        <div class="table-wrapper table-wrapper-scroll">
                             <table class="data-table timeline-table" id="timeline-table">
                                 <thead><tr><th width="30"></th><th>First Name</th><th>Last Name</th><th>Email</th><th>Position</th><th>Status</th></tr></thead>
                                 <tbody id="timeline-tbody"></tbody>
                             </table>
                         </div>
+                        <div class="tl-pagination" id="tl-pagination"></div>
                     </div>
                 </div>
 

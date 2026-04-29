@@ -793,6 +793,45 @@ select.input {
 .panel-csv-header h2 { margin: 0; font-size: 1.25rem; }
 .panel-csv-actions { display: flex; gap: 0.5rem; }
 
+/* Timeline Filters & Pagination */
+.tl-filters { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+.tl-filter-btn {
+    padding: 0.3rem 0.7rem; border: 1px solid var(--border); border-radius: 6px;
+    background: transparent; color: var(--text-secondary); font-size: 0.75rem;
+    font-weight: 500; cursor: pointer; transition: all var(--transition);
+    font-family: inherit;
+}
+.tl-filter-btn:hover { border-color: rgba(59,130,246,0.4); color: var(--text-primary); }
+.tl-filter-btn.active { background: rgba(59,130,246,0.15); border-color: #3b82f6; color: #60a5fa; }
+
+.tl-pagesize {
+    display: flex; align-items: center; gap: 0.4rem; margin-left: auto;
+}
+.tl-pagesize label { font-size: 0.75rem; color: var(--text-muted); }
+.tl-pagesize select {
+    padding: 0.3rem 0.5rem; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--bg-card); color: var(--text-primary); font-size: 0.75rem;
+    font-family: inherit; cursor: pointer;
+}
+
+.table-wrapper-scroll { max-height: 60vh; overflow-y: auto; }
+.table-wrapper-scroll thead { position: sticky; top: 0; z-index: 2; }
+.table-wrapper-scroll thead th { background: var(--bg-card); }
+
+.tl-pagination {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0.25rem; padding: 1rem 0; flex-wrap: wrap;
+}
+.tl-page-btn {
+    padding: 0.35rem 0.65rem; border: 1px solid var(--border); border-radius: 6px;
+    background: transparent; color: var(--text-secondary); font-size: 0.75rem;
+    cursor: pointer; transition: all var(--transition); font-family: inherit;
+}
+.tl-page-btn:hover { border-color: rgba(59,130,246,0.4); color: var(--text-primary); }
+.tl-page-btn.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+.tl-page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.tl-page-info { font-size: 0.75rem; color: var(--text-muted); padding: 0 0.5rem; }
+
 @media (max-width: 768px) {
     .client-layout { flex-direction: column; }
     .client-sidebar { width: 100%; min-width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
