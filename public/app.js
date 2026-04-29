@@ -697,7 +697,7 @@ function renderTimelinePage() {
     }
     if (endPage < totalPages) html += `<span class="tl-page-info">…</span><button class="tl-page-btn" onclick="goTimelinePage(${totalPages})">${totalPages}</button>`;
 
-    html += `<button class="tl-page-btn" onclick="goTimelinePage(${tlCurrentPage + 1})" ${tlCurrentPage === totalPages ? 'disabled' : ''}">Next ›</button>`;
+    html += `<button class="tl-page-btn" onclick="goTimelinePage(${tlCurrentPage + 1})" ${tlCurrentPage === totalPages ? 'disabled' : ''}>Next ›</button>`;
     pagEl.innerHTML = html;
 }
 
