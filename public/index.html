@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoPhish Analyzer — Campaign Dashboard</title>
+    <meta name="description" content="Web-based GoPhish campaign result analyzer with history and persistence">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <nav class="navbar" id="navbar">
+        <div class="nav-brand" onclick="showView('clients')">
+            <div class="nav-logo">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <span class="nav-title"><span id="nav-client-name"></span>GoPhish<span class="accent">Analyzer</span></span>
+        </div>
+        <div class="nav-actions">
+            <button class="btn btn-ghost" onclick="showSettings()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Settings
+            </button>
+            <button class="btn btn-ghost" onclick="handleLogout()" title="Logout">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal" onclick="closeModal(event)">
+        <div class="modal modal-lg" onclick="event.stopPropagation()">
+            <div class="modal-header"><h3>⚙️ Settings</h3><button class="btn-close" onclick="hideSettings()">&times;</button></div>
+            <div class="modal-body">
+                <!-- GoPhish Connection -->
+                <div class="settings-section">
+                    <h4 class="settings-section-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        GoPhish Connection
+                    </h4>
+                    <div class="form-group">
+                        <label for="settings-gophish-url">Server URL</label>
+                        <input type="text" id="settings-gophish-url" placeholder="https://127.0.0.1:3333" class="input">
+                        <p class="form-hint">GoPhish admin listener URL (port 3333 by default)</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="settings-gophish-key">API Key</label>
+                        <input type="password" id="settings-gophish-key" placeholder="Enter GoPhish API key" class="input">
+                        <p class="form-hint">Found in GoPhish → Settings → API Key</p>
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-ghost btn-sm" id="test-gophish-btn" onclick="testGoPhishConnection()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                            Test Connection
+                        </button>
+                        <span id="test-gophish-result" class="test-result"></span>
+                    </div>
+                </div>
+
+                <!-- IP Lookup -->
+                <div class="settings-section">
+                    <h4 class="settings-section-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                        IP Lookup
+                    </h4>
+                    <div class="form-group">
+                        <label for="settings-ipinfo-token">IPinfo API Token</label>
+                        <input type="password" id="settings-ipinfo-token" placeholder="Enter your IPinfo token" class="input">
+                        <p class="form-hint">Get one free at <a href="https://ipinfo.io" target="_blank">ipinfo.io</a></p>
+                    </div>
+                </div>
+
+                <!-- Dashboard Options -->
+                <div class="settings-section">
+                    <h4 class="settings-section-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        Dashboard Options
+                    </h4>
+                    <div class="form-row">
+                        <div class="form-group form-group-half">
+                            <label for="settings-refresh-interval">Auto-Refresh Interval</label>
+                            <select id="settings-refresh-interval" class="input">
+                                <option value="0">Disabled</option>
+                                <option value="30">30 seconds</option>
+                                <option value="60" selected>1 minute</option>
+                                <option value="120">2 minutes</option>
+                                <option value="300">5 minutes</option>
+                            </select>
+                        </div>
+                        <div class="form-group form-group-half">
+                            <label for="settings-share-expiry">Share Link Expiry</label>
+                            <select id="settings-share-expiry" class="input">
+                                <option value="0" selected>Never (manual revoke)</option>
+                                <option value="7">7 days</option>
+                                <option value="14">14 days</option>
+                                <option value="30">30 days</option>
+                                <option value="90">90 days</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="hideSettings()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Project Modal -->
+    <div class="modal-overlay" id="client-modal" onclick="closeModal(event)">
+        <div class="modal modal-sm" onclick="event.stopPropagation()">
+            <div class="modal-header"><h3 id="client-modal-title">New Project</h3><button class="btn-close" onclick="hideClientModal()">&times;</button></div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="client-name-input">Project Name</label>
+                    <input type="text" id="client-name-input" class="input" placeholder="e.g. Pre-Phishing Assessment">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="hideClientModal()">Cancel</button>
+                <button class="btn btn-primary" id="client-save-btn" onclick="saveClient()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sync from GoPhish Modal -->
+    <div class="modal-overlay" id="sync-modal" onclick="closeModal(event)">
+        <div class="modal modal-lg" onclick="event.stopPropagation()">
+            <div class="modal-header"><h3>🔄 Sync from GoPhish</h3><button class="btn-close" onclick="hideSyncModal()">&times;</button></div>
+            <div class="modal-body">
+                <div id="sync-loading" class="sync-loading">Loading campaigns from GoPhish...</div>
+                <div id="sync-error" class="sync-error" style="display:none"></div>
+                <div id="sync-campaign-list" style="display:none">
+                    <div class="sync-select-bar">
+                        <label class="sync-checkbox-label"><input type="checkbox" id="sync-select-all" onchange="toggleSyncAll()"> Select All</label>
+                        <span id="sync-count" class="text-muted">0 campaigns found</span>
+                    </div>
+                    <div class="sync-list" id="sync-list"></div>
+                </div>
+                <div class="progress-container" id="sync-progress" style="display:none">
+                    <div class="progress-header"><span class="progress-label" id="sync-progress-label">Syncing...</span><span class="progress-pct" id="sync-progress-pct">0%</span></div>
+                    <div class="progress-bar"><div class="progress-fill" id="sync-progress-fill"></div></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="hideSyncModal()">Cancel</button>
+                <button class="btn btn-primary" id="sync-btn" onclick="syncSelectedCampaigns()" disabled>Sync Selected</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div class="modal-overlay" id="delete-modal" onclick="closeModal(event)">
+        <div class="modal modal-sm" onclick="event.stopPropagation()">
+            <div class="modal-header"><h3>Confirm Delete</h3><button class="btn-close" onclick="hideDeleteModal()">&times;</button></div>
+            <div class="modal-body"><p>Are you sure you want to delete <strong id="delete-target-name"></strong>? This cannot be undone.</p></div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="hideDeleteModal()">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- VIEW: Project List -->
+    <!-- ============================================================ -->
+    <main class="container" id="view-clients">
+        <div class="page-header">
+            <div>
+                <h1 id="projects-title">Projects</h1>
+                <p class="subtitle">Manage phishing assessment projects and campaigns</p>
+            </div>
+            <div class="page-header-actions">
+                <button class="btn btn-primary" onclick="showClientModal()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    New Project
+                </button>
+            </div>
+        </div>
+        <div class="empty-state" id="empty-clients" style="display:none">
+            <div class="empty-icon"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg></div>
+            <h2>No Projects Yet</h2>
+            <p>Create a project to start analyzing phishing campaigns</p>
+            <button class="btn btn-primary btn-lg" onclick="showClientModal()">Create First Project</button>
+        </div>
+        <div class="campaign-grid" id="clients-grid"></div>
+    </main>
+
+    <!-- ============================================================ -->
+    <!-- VIEW: Project Detail (Sidebar Layout) -->
+    <!-- ============================================================ -->
+    <main class="container container-full" id="view-client-detail" style="display:none">
+        <div class="page-header">
+            <button class="btn btn-ghost" onclick="showView('clients')">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                Back
+            </button>
+            <div>
+                <h1 id="client-detail-name">Project Name</h1>
+                <p class="subtitle" id="client-detail-sub">Campaigns</p>
+            </div>
+            <div class="page-header-actions">
+                <button class="btn btn-primary" onclick="exportClientXLSX()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Export XLSX
+                </button>
+                <button class="btn btn-ghost" id="share-link-btn" onclick="toggleShareLink()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                    <span id="share-link-text">Share Dashboard</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Sidebar + Main Layout -->
+        <div class="client-layout">
+            <aside class="client-sidebar">
+                <nav class="sidebar-nav">
+                    <button class="sidebar-item active" data-panel="panel-dashboard" onclick="switchPanel('panel-dashboard')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                        <span>Dashboard</span>
+                    </button>
+                    <button class="sidebar-item" data-panel="panel-gophish" onclick="switchPanel('panel-gophish')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span>GoPhish Live</span>
+                    </button>
+                    <button class="sidebar-item" data-panel="panel-csv" onclick="switchPanel('panel-csv')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        <span>CSV Reports</span>
+                    </button>
+                </nav>
+
+                <!-- GoPhish sidebar campaigns (shown when GoPhish panel active) -->
+                <div class="sidebar-gp-section" id="sidebar-gp-campaigns" style="display:none">
+                    <div class="sidebar-section-title">
+                        <span>Campaigns</span>
+                        <button class="btn btn-accent btn-xs" onclick="showSyncModal()" title="Sync">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                        </button>
+                    </div>
+                    <div id="sidebar-gp-list" class="sidebar-campaign-list"></div>
+                </div>
+            </aside>
+
+            <div class="client-main">
+                <!-- PANEL: Dashboard -->
+                <div class="client-panel active" id="panel-dashboard">
+                    <div id="client-dashboard">
+                        <div class="dashboard-stats">
+                            <div class="dash-card dash-targets"><div class="dash-card-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="dash-card-value" id="dash-targets">0</div><div class="dash-card-label">Total Targets</div></div>
+                            <div class="dash-card dash-sent"><div class="dash-card-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div><div class="dash-card-value" id="dash-sent">0</div><div class="dash-card-label">Emails Sent</div><div class="dash-card-pct" id="dash-pct-sent"></div></div>
+                            <div class="dash-card dash-opened"><div class="dash-card-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div class="dash-card-value" id="dash-opened">0</div><div class="dash-card-label">Opened</div><div class="dash-card-pct" id="dash-pct-opened"></div></div>
+                            <div class="dash-card dash-clicked"><div class="dash-card-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div><div class="dash-card-value" id="dash-clicked">0</div><div class="dash-card-label">Clicked Link</div><div class="dash-card-pct" id="dash-pct-clicked"></div></div>
+                            <div class="dash-card dash-submitted"><div class="dash-card-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="dash-card-value" id="dash-submitted">0</div><div class="dash-card-label">Submitted Data</div><div class="dash-card-pct" id="dash-pct-submitted"></div></div>
+                        </div>
+                        <div class="dashboard-charts">
+                            <div class="chart-card"><h3 class="chart-title">Phishing Funnel</h3><div class="chart-container chart-container-sm"><canvas id="chart-funnel"></canvas></div></div>
+                            <div class="chart-card"><h3 class="chart-title">Per Scenario Comparison</h3><div class="chart-container"><canvas id="chart-scenarios"></canvas></div></div>
+                        </div>
+                        <div class="chart-card" id="scenario-table-card">
+                            <h3 class="chart-title">Scenario Summary</h3>
+                            <div class="table-wrapper"><table class="data-table scenario-table" id="scenario-summary-table"><thead><tr><th>Scenario</th><th>Targets</th><th>Sent</th><th>Opened</th><th>Clicked</th><th>Submitted</th></tr></thead><tbody id="scenario-summary-tbody"></tbody></table></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PANEL: GoPhish Live -->
+                <div class="client-panel" id="panel-gophish">
+                    <div class="gp-live-empty" id="gp-live-empty">
+                        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.3"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <p style="margin-top:1rem"><strong>Select a campaign</strong></p>
+                        <p class="text-muted" style="font-size:0.85rem">Choose a GoPhish campaign from the sidebar to view live timeline</p>
+                    </div>
+                    <div id="gp-timeline-view" style="display:none">
+                        <div class="gp-timeline-header">
+                            <h2 id="gp-timeline-name">Campaign</h2>
+                            <span class="toolbar-info" id="gp-timeline-count"></span>
+                        </div>
+                        <div class="gp-timeline-stats" id="gp-timeline-stats"></div>
+                        <div class="table-toolbar">
+                            <div class="search-box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="timeline-search" class="input input-sm" placeholder="Search by name or email..." oninput="debounceLoadTimeline()"></div>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table timeline-table" id="timeline-table">
+                                <thead><tr><th width="30"></th><th>First Name</th><th>Last Name</th><th>Email</th><th>Position</th><th>Status</th></tr></thead>
+                                <tbody id="timeline-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PANEL: CSV Reports -->
+                <div class="client-panel" id="panel-csv">
+                    <div class="panel-csv-header">
+                        <h2>CSV Campaign Reports</h2>
+                        <div class="panel-csv-actions">
+                            <button class="btn btn-accent" onclick="showSyncModal()">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                                Sync from GoPhish
+                            </button>
+                            <button class="btn btn-ghost" onclick="showView('new-campaign')">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Upload CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div class="empty-state" id="empty-campaigns" style="display:none">
+                        <div class="empty-icon"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+                        <h2>No Campaigns</h2>
+                        <p>Sync from GoPhish or upload CSV exports to add campaigns</p>
+                        <button class="btn btn-primary btn-lg" onclick="showView('new-campaign')">Add First Campaign</button>
+                    </div>
+                    <div class="campaign-grid" id="campaigns-grid"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ============================================================ -->
+    <!-- VIEW: Add Campaigns (Bulk Upload) -->
+    <!-- ============================================================ -->
+    <main class="container" id="view-new-campaign" style="display:none">
+        <div class="page-header">
+            <button class="btn btn-ghost" onclick="backToClientDetail()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                Back
+            </button>
+            <div>
+                <h1>Add Campaigns</h1>
+                <p class="subtitle" id="new-campaign-client-name">for Client</p>
+            </div>
+        </div>
+        <div class="card form-card" id="bulk-upload-card">
+            <div class="form-group">
+                <label>Drop CSV Files</label>
+                <div class="drop-zone drop-zone-lg" id="drop-bulk" onclick="document.getElementById('bulk-files').click()">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <p class="drop-text">Drop all CSV files here or click to browse</p>
+                    <p class="drop-hint">Naming: <strong>Campaign Name - Events.csv</strong> &amp; <strong>Campaign Name - Results.csv</strong></p>
+                </div>
+                <input type="file" id="bulk-files" accept=".csv" multiple style="display:none" onchange="handleBulkFiles(this.files)">
+            </div>
+
+            <!-- Detected pairs -->
+            <div id="detected-pairs" style="display:none">
+                <h3 style="margin:1rem 0 0.5rem;color:var(--text-primary)">Detected Campaign Pairs</h3>
+                <div id="pairs-list" class="pairs-list"></div>
+            </div>
+
+            <div class="form-group" style="margin-top:1.5rem">
+                <label for="ipinfo-token">IPinfo Token <span class="optional">(optional)</span></label>
+                <input type="password" id="ipinfo-token" class="input" placeholder="Uses saved token if empty">
+            </div>
+            <div class="form-group">
+                <label>Exclude Organizations</label>
+                <div class="tags-input" id="tags-container">
+                    <div class="tags-list" id="tags-list"></div>
+                    <input type="text" id="exclude-org-input" class="tags-field" placeholder="Type org name and press Enter">
+                </div>
+                <p class="form-hint">IPs from these orgs will be marked invalid</p>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-ghost" onclick="backToClientDetail()">Cancel</button>
+                <button type="button" class="btn btn-primary btn-lg" id="submit-btn" onclick="submitBulkCampaigns()" disabled>Process All Campaigns</button>
+            </div>
+            <div class="progress-container" id="progress-container" style="display:none">
+                <div class="progress-header"><span class="progress-label" id="progress-label">Processing...</span><span class="progress-pct" id="progress-pct">0%</span></div>
+                <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ============================================================ -->
+    <!-- VIEW: Campaign Detail -->
+    <!-- ============================================================ -->
+    <main class="container" id="view-campaign-detail" style="display:none">
+        <div class="page-header">
+            <button class="btn btn-ghost" onclick="backToClientDetail()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                Back
+            </button>
+            <div>
+                <h1 id="detail-campaign-name">Campaign</h1>
+                <p class="subtitle" id="detail-campaign-date">Created on —</p>
+            </div>
+            <div class="page-header-actions">
+                <button class="btn btn-ghost" onclick="exportCampaignZip()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Export ZIP
+                </button>
+            </div>
+        </div>
+
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card stat-targets"><div class="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div class="stat-value" id="stat-targets">0</div><div class="stat-label">Total Targets</div></div>
+            <div class="stat-card stat-sent"><div class="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></div><div class="stat-value" id="stat-sent">0</div><div class="stat-label">Emails Sent</div><div class="stat-bar"><div class="stat-bar-fill sent-fill" id="bar-sent"></div></div></div>
+            <div class="stat-card stat-opened"><div class="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div class="stat-value" id="stat-opened">0</div><div class="stat-label">Opened</div><div class="stat-bar"><div class="stat-bar-fill opened-fill" id="bar-opened"></div></div></div>
+            <div class="stat-card stat-clicked"><div class="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div><div class="stat-value" id="stat-clicked">0</div><div class="stat-label">Clicked</div><div class="stat-bar"><div class="stat-bar-fill clicked-fill" id="bar-clicked"></div></div></div>
+            <div class="stat-card stat-submitted"><div class="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="stat-value" id="stat-submitted">0</div><div class="stat-label">Submitted</div><div class="stat-bar"><div class="stat-bar-fill submitted-fill" id="bar-submitted"></div></div></div>
+        </div>
+
+        <div class="tabs" id="detail-tabs">
+            <button class="tab active" data-tab="summary" onclick="switchTab('summary')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> Summary</button>
+            <button class="tab" data-tab="events" onclick="switchTab('events')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Raw Activity</button>
+            <button class="tab" data-tab="submitted" onclick="switchTab('submitted')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Submitted Data</button>
+        </div>
+
+        <div class="tab-content active" id="tab-summary">
+            <div class="table-toolbar">
+                <div class="search-box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="summary-search" class="input input-sm" placeholder="Search by email..." oninput="filterSummary()"></div>
+                <div class="filter-group">
+                    <button class="btn btn-primary btn-sm" onclick="copySummaryAll()">Copy All</button>
+                    <button class="btn btn-ghost btn-sm" onclick="copySummaryColumn()">Copy Column</button>
+                </div>
+            </div>
+            <div class="table-wrapper"><table class="data-table" id="summary-table"><thead><tr><th>#</th><th>Email</th><th>RID</th><th>Sent</th><th>Opened</th><th>Clicked</th><th>Submitted</th></tr></thead><tbody id="summary-tbody"></tbody></table></div>
+        </div>
+
+        <div class="tab-content" id="tab-events">
+            <div class="table-toolbar">
+                <div class="search-box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" id="events-search" class="input input-sm" placeholder="Search..." oninput="debounceLoadEvents()"></div>
+                <div class="filter-group">
+                    <select id="events-message-filter" class="input input-sm" onchange="loadEvents()"><option value="">All Events</option><option value="Email Sent">Email Sent</option><option value="Email Opened">Email Opened</option><option value="Clicked Link">Clicked Link</option><option value="Submitted Data">Submitted Data</option></select>
+                    <select id="events-valid-filter" class="input input-sm" onchange="loadEvents()"><option value="">All IPs</option><option value="1">Valid Only</option><option value="0">Invalid Only</option></select>
+                    <button class="btn btn-primary btn-sm" onclick="copyEventsAll()">Copy All</button>
+                    <button class="btn btn-ghost btn-sm" onclick="copyEventsColumn()">Copy Column</button>
+                </div>
+            </div>
+            <div class="table-wrapper"><table class="data-table" id="events-table"><thead><tr><th>#</th><th>Email</th><th>RID</th><th>Status</th><th>Time (WIB)</th><th>IP Address</th><th>IP Details</th><th>Valid</th></tr></thead><tbody id="events-tbody"></tbody></table></div>
+            <div class="pagination" id="events-pagination"></div>
+        </div>
+
+        <div class="tab-content" id="tab-submitted">
+            <div class="table-toolbar">
+                <span class="toolbar-info" id="submitted-count">0 submissions</span>
+                <button class="btn btn-primary btn-sm" onclick="copySubmittedData()">Copy All</button>
+            </div>
+            <div class="table-wrapper"><table class="data-table" id="submitted-table"><thead><tr id="submitted-thead-row"><th>#</th><th>Email</th><th>RID</th><th>Time (WIB)</th></tr></thead><tbody id="submitted-tbody"></tbody></table></div>
+        </div>
+    </main>
+
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/app.js"></script>
+</body>
+</html>

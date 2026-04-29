@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  analyzer:
+    build: .
+    image: phishing/gophish-analyzer:latest
+    container_name: gophish-analyzer
+    restart: unless-stopped
+    ports:
+      - "${DASHBOARD_PORT:-51337}:3000"
+    volumes:
+      - analyzer-data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - CLIENT_NAME=${CLIENT_NAME:-}
+      - AUTH_USER=${AUTH_USER:-admin}
+      - AUTH_PASS=${AUTH_PASS:-secret}
+      - GOPHISH_API_KEY=${GOPHISH_API_KEY:-}
+      - GOPHISH_SERVER_URL=${GOPHISH_SERVER_URL:-}
+
+volumes:
+  analyzer-data:
